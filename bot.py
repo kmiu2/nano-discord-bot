@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 # Get tokens
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
-GUILD = os.getenv("DISCORD_GUILD")
 
 # Intents
 intents = discord.Intents.default()
@@ -18,10 +17,8 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     for guild in client.guilds:
-        if guild.name == GUILD:
-            break
-    now = datetime.datetime.now()
-    print(f"{client.user} is connected to {guild.name} (id: {guild.id}) at {now}")
+        now = datetime.datetime.now()
+        print(f"{client.user} is connected to {guild.name} (id: {guild.id}) at {now}")
 
 
 # Error Logging
@@ -34,21 +31,25 @@ async def on_error(event, *args, **kwargs):
             raise
 
 
-# Actual on message function
+# On message function
 @client.event
 async def on_message(message):
     # Prevent bot from responding to itself
     if message.author == client.user:
         return
 
+    # Variables
     msg = message.content.lower()
     today = datetime.date.today()
     irs_day = datetime.date(2024, 2, 3)
-
     days = str(irs_day - today).split(" ")[0]
 
+    # Message responses
     if "days" in msg and "irs" in msg:
         await message.channel.send(f"There are {days} days until IRS!")
+
+    if "choices" in msg:
+        await message.channel.send("<:choices:971840335623901194>")
 
 
 client.run(TOKEN)
