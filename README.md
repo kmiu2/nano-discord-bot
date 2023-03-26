@@ -23,7 +23,7 @@ tmux new -s nanobot
 python3 bot.py
 ```
 
-Then `Ctrl-a Ctr-d` to detach. To reconnect
+Then `Ctrl-B + D` to detach. To reconnect
 
 ```bash
 tmux attach -t nanobot
