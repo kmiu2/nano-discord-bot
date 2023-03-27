@@ -39,8 +39,8 @@ async def set_irs(ctx, *args):
         day = int(args[1])
         year = int(args[2])
 
-        irs_days[ctx.guild.id] = datetime.date(year, month, day)
-        await ctx.send(f"IRS day set to {month}/{day}/{year}")
+        irs_days[ctx.guild.id] = datetime.datetime(year, month, day, 12, 0, 0)
+        await ctx.send(f"IRS day set to {month}/{day}/{year} at 12:00 PM.")
     except ValueError:
         await ctx.send(error_string)
 
@@ -53,13 +53,11 @@ async def on_ready():
             type=discord.ActivityType.listening, name="geese honking"
         ),
     )
+
     for guild in bot.guilds:
         now = datetime.datetime.now()
-        irs_days[guild.id] = datetime.date(2024, 2, 3)
+        irs_days[guild.id] = datetime.datetime(2024, 2, 3, 12, 0, 0)
         print(f"{bot.user} is connected to {guild.name} (id: {guild.id}) at {now}")
-
-    # Start tasks
-    send_daily_irs_message.start()
 
 
 # Error Logging
@@ -84,8 +82,8 @@ async def on_message(message):
     channel_id = message.channel.id
     irs_day = irs_days[guild_id]
     msg = message.content.lower()
-    today = datetime.date.today()
-    days = str(irs_day - today).split(" ")[0]
+    today = datetime.datetime.now()
+    days = (irs_day - today).days
 
     ### 2024 Gradcomm server, only show on irs channel, modlog
     if guild_id == 1083515069444403240 and (
@@ -95,7 +93,7 @@ async def on_message(message):
 
     if re.match(r"\birs\b.*\bdays\b|\bdays\b.*\birs\b", msg):
         await message.channel.send(
-            f"There are {days} days until IRS! It's on {irs_day.strftime('%B %d, %Y')}."
+            f"There are {days} days until IRS! It's on {irs_day.strftime('%B %d, %Y')} at 12:00 PM."
         )
 
     ### Nano 24 server
@@ -107,29 +105,6 @@ async def on_message(message):
 
     # Since we overrode on_message, we need to call process_commands
     await bot.process_commands(message)
-
-
-def seconds_until(time):
-    now = datetime.datetime.now()
-    time = datetime.datetime.strptime(time, "%H:%M:%S")
-    time = time.replace(year=now.year, month=now.month, day=now.day)
-    if time < now:
-        time = time.replace(day=now.day + 1)
-    return (time - now).seconds
-
-
-# Send a message every day at 12:00 PM for 2024 Gradcomm server
-# Allow for 1 minute buffer
-@tasks.loop(hours=23, minutes=59)
-async def send_daily_irs_message():
-    await asyncio.sleep(seconds_until("12:00:00"))
-    irs_day = irs_days[1083515069444403240]
-    today = datetime.date.today()
-    days = str(irs_day - today).split(" ")[0]
-    channel = bot.get_channel(1086067292623863880)
-    await channel.send(
-        f"There are {days} days until IRS! It's on {irs_day.strftime('%B %d, %Y')}."
-    )
 
 
 bot.run(TOKEN)
