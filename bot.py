@@ -1,7 +1,9 @@
+import asyncio
 import datetime
 import discord
 import os
-from discord.ext import commands
+import re
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 # Get tokens
@@ -53,8 +55,11 @@ async def on_ready():
     )
     for guild in bot.guilds:
         now = datetime.datetime.now()
-        irs_days[guild.id] = datetime.date(2024, 5, 31)
+        irs_days[guild.id] = datetime.date(2024, 2, 3)
         print(f"{bot.user} is connected to {guild.name} (id: {guild.id}) at {now}")
+
+    # Start tasks
+    send_daily_irs_message.start()
 
 
 # Error Logging
@@ -76,13 +81,19 @@ async def on_message(message):
 
     # Variables
     guild_id = message.guild.id
+    channel_id = message.channel.id
     irs_day = irs_days[guild_id]
     msg = message.content.lower()
     today = datetime.date.today()
     days = str(irs_day - today).split(" ")[0]
 
-    ### All server responses
-    if "days" in msg and "irs" in msg:
+    ### 2024 Gradcomm server, only show on irs channel, modlog
+    if guild_id == 1083515069444403240 and (
+        channel_id != 1086067292623863880 or channel_id != 1086073945184284734
+    ):
+        return
+
+    if re.match(r"\birs\b.*\bdays\b|\bdays\b.*\birs\b", msg):
         await message.channel.send(
             f"There are {days} days until IRS! It's on {irs_day.strftime('%B %d, %Y')}."
         )
@@ -96,6 +107,29 @@ async def on_message(message):
 
     # Since we overrode on_message, we need to call process_commands
     await bot.process_commands(message)
+
+
+def seconds_until(time):
+    now = datetime.datetime.now()
+    time = datetime.datetime.strptime(time, "%H:%M:%S")
+    time = time.replace(year=now.year, month=now.month, day=now.day)
+    if time < now:
+        time = time.replace(day=now.day + 1)
+    return (time - now).seconds
+
+
+# Send a message every day at 12:00 PM for 2024 Gradcomm server
+# Allow for 1 minute buffer
+@tasks.loop(hours=23, minutes=59)
+async def send_daily_irs_message():
+    await asyncio.sleep(seconds_until("12:00:00"))
+    irs_day = irs_days[1083515069444403240]
+    today = datetime.date.today()
+    days = str(irs_day - today).split(" ")[0]
+    channel = bot.get_channel(1086067292623863880)
+    await channel.send(
+        f"There are {days} days until IRS! It's on {irs_day.strftime('%B %d, %Y')}."
+    )
 
 
 bot.run(TOKEN)
