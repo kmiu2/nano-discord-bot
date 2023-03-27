@@ -93,7 +93,7 @@ async def on_message(message):
     ):
         return
 
-    if re.match(r"\birs\b.*\bdays\b|\bdays\b.*\birs\b", msg):
+    if re.search(r"\birs\b.*\bdays\b|\bdays\b.*\birs\b", msg):
         await message.channel.send(
             f"There are {days} days until IRS! It's on {irs_day.strftime('%B %d, %Y')} at 12:00 PM."
         )
