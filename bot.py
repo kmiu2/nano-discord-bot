@@ -86,8 +86,10 @@ async def on_message(message):
     days = (irs_day - today).days
 
     ### 2024 Gradcomm server, only show on irs channel, modlog
-    if guild_id == 1083515069444403240 and (
-        channel_id != 1086067292623863880 or channel_id != 1086073945184284734
+    if (
+        guild_id == 1083515069444403240
+        and channel_id != 1086067292623863880
+        and channel_id != 1086073945184284734
     ):
         return
 
