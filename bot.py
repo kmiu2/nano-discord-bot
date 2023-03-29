@@ -16,6 +16,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="$", intents=intents)
+tz = datetime.timezone(datetime.timedelta(hours=-5)) # UTC:-5 for Toronto Time
 irs_dates_file = "irs_dates.json"
 
 # Global Variables
@@ -44,7 +45,7 @@ def read_irs_data():
     file = open(irs_dates_file, mode="r")
     times = json.load(file)
     for key in times:
-        times[key] = datetime.datetime.fromtimestamp(times[key])
+        times[key] = datetime.datetime.fromtimestamp(times[key], tz=tz)
     return times
 
 
@@ -56,7 +57,7 @@ async def set_irs(ctx, *args):
         await ctx.send("You do not have permission to use this command.")
         return
 
-    error_string = 'Invalid date given, the format is "$set_irs YYYY/MM/DD [HH:MM:SS]". For example, "$set_irs 2024/05/31" or "$set_irs 2024/05/29 15:30:00. If time is not specified, it defaults to Noon (12:00:00)"'
+    error_string = 'Invalid date given, the format is "$set_irs YYYY/MM/DD [HH:MM:SS]". For example, "$set_irs 2024/05/31" or "$set_irs 2024/05/29 15:30:00. If time is not specified, it defaults to Noon (12:00:00). Timezone is EST (UTC:-5)"'
 
     command = " ".join(args)
     match = set_irs_regex.fullmatch(command)
@@ -79,7 +80,7 @@ async def set_irs(ctx, *args):
         # Set the datetime
         global irs_days
         irs_days[str(ctx.guild.id)] = datetime.datetime(
-            year, month, day, hour, minute, second
+            year, month, day, hour, minute, second, tz=tz
         )
         write_irs_data(irs_days)
         irs_days = read_irs_data()
@@ -103,9 +104,9 @@ async def on_ready():
     global irs_days
     irs_days = read_irs_data()
     for guild in bot.guilds:
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(tz=tz)
         if str(guild.id) not in irs_days:
-            irs_days[str(guild.id)] = datetime.datetime(2024, 2, 3, 12, 0, 0)
+            irs_days[str(guild.id)] = datetime.datetime(2024, 2, 3, 12, 0, 0, tz=tz)
         print(f"{bot.user} is connected to {guild.name} (id: {guild.id}) at {now}")
 
     write_irs_data(irs_days)
@@ -145,7 +146,7 @@ async def on_message(message):
     ### All server responses
     if bool(irs_regex.search(msg)) and await check_cooldown(user_id, message):
         irs_day = irs_days[str(guild_id)]
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(tz=tz)
         minutes, seconds = divmod(round((irs_day - now).total_seconds()), 60)
         hours, minutes = divmod(minutes, 60)
         days, hours = divmod(hours, 24)
